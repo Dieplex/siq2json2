@@ -233,7 +233,7 @@ unzip(zipFilePath)
     ])
   })
   .catch((error) => {
-    if (error.code === 'ENOENT') {
+    if (error.code !== 'ENOENT') {
       console.error(chalk.red('Failed to parse the file: ', error.message));
     }
     else {

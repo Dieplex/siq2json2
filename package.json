@@ -1,6 +1,6 @@
 {
   "name": "siq2json2",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "SiGame package converter to json",
   "main": "bin/index.js",
   "scripts": {
