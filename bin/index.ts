@@ -9,13 +9,7 @@ import * as path from 'path';
 import * as unzipper from 'unzipper';
 import * as xml2js from 'xml2js';
 import * as il from 'iconv-lite';
-import * as imagemin from 'imagemin';
-import * as svgo from 'imagemin-svgo';
-import * as gifsicle from 'imagemin-gifsicle';
-import pngquant from 'imagemin-pngquant';
-import * as jpg from 'imagemin-jpeg-recompress';
 import * as rimraf from 'rimraf';
-import * as archiver from 'archiver';
 
 const readFilePromise = promisify(fs.readFile);
 const unlinkPromise = promisify(fs.unlink);
@@ -43,7 +37,6 @@ if (!fs.existsSync(zipFilePath)) {
 }
 
 const filename = path.basename(relativePath).replace(extension, '');
-const resultFileName = relativePath.replace(filename, `${filename}-json`).replace(extension, '.zip');
 const unzippedFolder = path.resolve(path.dirname(zipFilePath), filename);
 const rootXml = path.normalize(`${unzippedFolder}/content.xml`);
 
@@ -101,7 +94,8 @@ const convertToJSON = (gamePackage: SIGame.Package): Package => {
               task: {
                 text: '',
                 images: [] as string[],
-                sounds: [] as string[]
+                sounds: [] as string[],
+                video:  [] as string[],
               },
               explanation: ''
             };
@@ -143,6 +137,9 @@ const convertToJSON = (gamePackage: SIGame.Package): Package => {
                   break;
                 case 'voice':
                   q.task.sounds.push(path.normalize(mediaScenario._.replace('@', `./Audio/`)));
+                  break;
+                case 'video':
+                  q.task.video.push(path.normalize(mediaScenario._.replace('@', `./Video/`)));
                   break;
                 case 'say':
                   q.explanation = mediaScenario._;
@@ -214,56 +211,15 @@ unzip(zipFilePath)
     console.log(chalk.green(`Converted to json`));
   })
   .then(() => {
-    console.log(chalk.yellow('Optimizing images...'));
-    return imagemin([path.resolve(unzippedFolder, './Images/*')], {
-      destination: path.resolve(unzippedFolder, './Images/'),
-      plugins: [
-        svgo({
-          plugins: [
-            { removeViewBox: false }
-          ]
-        }),
-        gifsicle(),
-        pngquant(),
-        jpg()
-      ]
-    })
-  })
-  .then(() => {
     console.log(chalk.green('Done'));
     console.log(chalk.yellow('Cleaning up...'));
     return Promise.all([
       unlinkPromise(path.resolve(unzippedFolder, 'content.xml')),
-      unlinkPromise(path.resolve(unzippedFolder, '[Content_Types].xml')),
-      removeDir(path.resolve(unzippedFolder, './Texts'))
+      removeDir(path.resolve(unzippedFolder, './Texts')),
+      removeDir(path.resolve(unzippedFolder, './Audio')),
+      removeDir(path.resolve(unzippedFolder, './Images')),
+      removeDir(path.resolve(unzippedFolder, './Video')),
     ])
-  })
-  .then(() => {
-    console.log(chalk.green('Done'));
-    console.log(chalk.yellow('Packaging...'));
-    return new Promise((resolve, reject) => {
-      const destination = fs.createWriteStream(resultFileName);
-      const archive = archiver('zip', {
-        zlib: { level: 9 }
-      });
-
-      archive.on('error', reject);
-      archive.on('warning', reject);
-      destination.on('end', resolve);
-      destination.on('close', resolve)
-
-      archive.pipe(destination);
-      archive.directory(unzippedFolder, false);
-      archive.finalize();
-    });
-  })
-  .then(() => {
-    console.log(chalk.green('Done'));
-    const originalFileStats = fs.statSync(relativePath);
-    const resultFileStats = fs.statSync(resultFileName);
-    const ratio = (100 - resultFileStats['size'] * 100 / originalFileStats['size']).toFixed(2);
-    console.log(chalk.yellow(`Package size reduced by ${chalk.greenBright(`${ratio}%`)}`));
-    return removeDir(unzippedFolder);
   })
   .catch((error: Error) => {
     console.error(error);

@@ -1,18 +1,16 @@
-#### Siq2json
+#### Siq2json2
 
-Converts the packages for [SiGame](https://vladimirkhil.com/si/game) from xml to json with image optimization
+Converts the packages for [SiGame](https://vladimirkhil.com/si/game) from xml to json
 
-On average, resulting packages become 10-15% smaller in size.
-
-SiGame currently doesn't support json format, this npm module was made "for science" with potentially some use in future.
+SiGame currently doesn't support json format, this npm module was made for VRChat.
 
 
 ```
-npm i -g siq2json
+npm i -g siq2json2
 
 siq <path/to/file.siq>
 ```
 
-This will create a `file-json.zip` file in the same directory as the original package file.
+This will create a `scenario.json` file in the directory as the original package file name.
 
 For the structure of a json, refer to bin/index.d.ts file

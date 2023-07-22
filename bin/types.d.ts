@@ -42,7 +42,7 @@ declare namespace SIGame {
   interface MediaScenario {
     _: string
     $: {
-      type: 'image' | 'voice' | 'say' | 'marker'
+      type: 'image' | 'voice' | 'video' | 'say' | 'marker'
     }
   }
 
