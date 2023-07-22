@@ -135,10 +135,10 @@ const convertToJSON = (gamePackage: SIGame.Package): Package => {
             const setQuestionMediaTask = (mediaScenario: SIGame.MediaScenario) => {
               switch (mediaScenario.$.type) {
                 case 'image':
-                  q.task.images.push(path.normalize(mediaScenario._.replace('@', `./Images/`)));
+                  q.task.images.push(path.normalize(mediaScenario._.replace('@', ``)));
                   break;
                 case 'voice':
-                  q.task.sounds.push(path.normalize(mediaScenario._.replace('@', `./Audio/`)));
+                  q.task.sounds.push(path.normalize(mediaScenario._.replace('@', ``)));
                   break;
                 case 'video':
                   q.task.video.push(path.normalize(mediaScenario._.replace('@', ``)));
