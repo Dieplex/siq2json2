@@ -13,6 +13,8 @@ import * as rimraf from 'rimraf';
 
 const readFilePromise = promisify(fs.readFile);
 const unlinkPromise = promisify(fs.unlink);
+const removeDirPromise = promisify(fs.rmdir);
+const renamePromise = promisify(fs.rename)
 
 const options = yargs.argv;
 
@@ -197,8 +199,6 @@ const removeDir = (dirPath: string) => new Promise((resolve, reject) => {
   })
 })
 
-const removeDirPromise = promisify(fs.rmdir)
-
 unzip(zipFilePath)
   .then(() => {
     return readFilePromise(rootXml);
@@ -222,22 +222,18 @@ unzip(zipFilePath)
   })
   .then((folderPath) => {
     console.log(chalk.yellow('Renaming dir...'));
-    fs.rename(unzippedFolder, folderPath, (err) => {
-      if (err) throw err;
-    });
-    return folderPath
+    return renamePromise(unzippedFolder, folderPath).then(() => folderPath)
   })
   .then((folderPath) => {
     console.log(chalk.yellow('Cleaning up...'));
-    return Promise.all([
+    return Promise.allSettled([
       unlinkPromise(path.resolve(folderPath, 'content.xml')),
       unlinkPromise(path.resolve(folderPath, '[Content_Types].xml')),
       removeDir(path.resolve(folderPath, './Texts')),
     ])
   })
   .catch((error) => {
-    if (error.code !== 'ENOENT') {
-      console.error(error);
+    if (error.code === 'ENOENT') {
       console.error(chalk.red('Failed to parse the file: ', error.message));
     }
     else {
