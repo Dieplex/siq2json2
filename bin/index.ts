@@ -139,7 +139,7 @@ const convertToJSON = (gamePackage: SIGame.Package): Package => {
                   q.task.sounds.push(path.normalize(mediaScenario._.replace('@', `./Audio/`)));
                   break;
                 case 'video':
-                  q.task.video.push(path.normalize(mediaScenario._.replace('@', `./Video/`)));
+                  q.task.video.push(path.normalize(mediaScenario._.replace('@', ``)));
                   break;
                 case 'say':
                   q.explanation = mediaScenario._;
@@ -197,9 +197,10 @@ const removeDir = (dirPath: string) => new Promise((resolve, reject) => {
   })
 })
 
+const removeDirPromise = promisify(fs.rmdir)
+
 unzip(zipFilePath)
   .then(() => {
-    console.log(chalk.green('Done'));
     return readFilePromise(rootXml);
   })
   .then((xml) => {
@@ -208,20 +209,38 @@ unzip(zipFilePath)
   .then((parcedPackage) => {
     const convertedJSON = convertToJSON(parcedPackage.package);
     fs.writeFileSync(path.join(unzippedFolder, 'scenario.json'), JSON.stringify(convertedJSON, null, 2));
-    console.log(chalk.green(`Converted to json`));
+    const renamedFolder = path.resolve(path.dirname(zipFilePath), parcedPackage.package.$.id);
+    console.log(chalk.yellow(`Converted to json...`));
+    return renamedFolder
   })
-  .then(() => {
-    console.log(chalk.green('Done'));
+  .then((renamedFolder) => {
+    if (fs.existsSync(renamedFolder)) {
+      console.log(chalk.yellow('Removing dir...'));
+      return removeDirPromise(renamedFolder, {recursive: true}).then(() => renamedFolder)
+    }
+    return renamedFolder
+  })
+  .then((folderPath) => {
+    console.log(chalk.yellow('Renaming dir...'));
+    fs.rename(unzippedFolder, folderPath, (err) => {
+      if (err) throw err;
+    });
+    return folderPath
+  })
+  .then((folderPath) => {
     console.log(chalk.yellow('Cleaning up...'));
     return Promise.all([
-      unlinkPromise(path.resolve(unzippedFolder, 'content.xml')),
-      removeDir(path.resolve(unzippedFolder, './Texts')),
-      removeDir(path.resolve(unzippedFolder, './Audio')),
-      removeDir(path.resolve(unzippedFolder, './Images')),
-      removeDir(path.resolve(unzippedFolder, './Video')),
+      unlinkPromise(path.resolve(folderPath, 'content.xml')),
+      unlinkPromise(path.resolve(folderPath, '[Content_Types].xml')),
+      removeDir(path.resolve(folderPath, './Texts')),
     ])
   })
-  .catch((error: Error) => {
-    console.error(error);
-    console.error(chalk.red('Failed to parse the file: ', error.message));
+  .catch((error) => {
+    if (error.code !== 'ENOENT') {
+      console.error(error);
+      console.error(chalk.red('Failed to parse the file: ', error.message));
+    }
+    else {
+      console.log(chalk.green('Done'));
+    }
   });
