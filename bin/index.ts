@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
-import { Entry, Package, SIGame, Round } from './types';
+import {Entry, Package, Round, SIGame} from './types';
 import * as chalk from 'chalk';
 import * as yargs from 'yargs';
 import * as fs from 'fs';
-import { promisify } from 'util';
+import {promisify} from 'util';
 import * as path from 'path';
 import * as unzipper from 'unzipper';
 import * as xml2js from 'xml2js';
@@ -43,7 +43,6 @@ const unzippedFolder = path.resolve(path.dirname(zipFilePath), filename);
 const rootXml = path.normalize(`${unzippedFolder}/content.xml`);
 
 const unzip = (zipFilePath: string): Promise<void> => {
-  console.log(chalk.yellow('Unwrapping the package...'));
   return new Promise((resolve, reject) => {
     const assertedPaths = [] as string[];
     fs.createReadStream(zipFilePath)
@@ -207,25 +206,21 @@ unzip(zipFilePath)
     return xml2js.parseStringPromise(xml);
   })
   .then((parcedPackage) => {
+    console.log(chalk.yellow(parcedPackage.package.$.id));
     const convertedJSON = convertToJSON(parcedPackage.package);
     fs.writeFileSync(path.join(unzippedFolder, 'scenario.json'), JSON.stringify(convertedJSON, null, 2));
-    const renamedFolder = path.resolve(path.dirname(zipFilePath), parcedPackage.package.$.id);
-    console.log(chalk.yellow(`Converted to json...`));
-    return renamedFolder
+    return path.resolve(path.dirname(zipFilePath), parcedPackage.package.$.id)
   })
   .then((renamedFolder) => {
     if (fs.existsSync(renamedFolder)) {
-      console.log(chalk.yellow('Removing dir...'));
       return removeDirPromise(renamedFolder, {recursive: true}).then(() => renamedFolder)
     }
     return renamedFolder
   })
   .then((folderPath) => {
-    console.log(chalk.yellow('Renaming dir...'));
     return renamePromise(unzippedFolder, folderPath).then(() => folderPath)
   })
   .then((folderPath) => {
-    console.log(chalk.yellow('Cleaning up...'));
     return Promise.allSettled([
       unlinkPromise(path.resolve(folderPath, 'content.xml')),
       unlinkPromise(path.resolve(folderPath, '[Content_Types].xml')),
@@ -235,8 +230,5 @@ unzip(zipFilePath)
   .catch((error) => {
     if (error.code !== 'ENOENT') {
       console.error(chalk.red('Failed to parse the file: ', error.message));
-    }
-    else {
-      console.log(chalk.green('Done'));
     }
   });
